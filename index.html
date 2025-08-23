@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fejkowe Kasyno</title>
+<style>
+body{font-family:sans-serif;background:#111;color:#fff;margin:0;padding:0;display:flex;justify-content:center}
+.container{max-width:900px;width:100%;padding:20px}
+h1{text-align:center}
+.balance{background:#222;padding:10px;border-radius:8px;margin-bottom:10px;text-align:center;font-size:18px}
+input,select,button{padding:8px;border:none;border-radius:5px;font-size:16px}
+button{cursor:pointer;background:#4caf50;color:white;transition:transform .1s ease}
+button:hover{transform:scale(1.05)}
+button:disabled{background:#555;cursor:not-allowed}
+.game{background:#1b1b1b;padding:15px;margin-bottom:15px;border-radius:8px;transition:background .3s}
+.history{background:#222;padding:10px;border-radius:8px;max-height:200px;overflow:auto}
+.history div{border-bottom:1px solid #333;padding:5px 0}
+.slot{display:flex;justify-content:center;font-size:40px;margin:10px 0;gap:15px}
+.winAnim{animation:winFlash 0.6s ease}
+.loseAnim{animation:loseFlash 0.6s ease}
+@keyframes winFlash{0%{background:#1b1b1b}50%{background:#064;}100%{background:#1b1b1b}}
+@keyframes loseFlash{0%{background:#1b1b1b}50%{background:#600;}100%{background:#1b1b1b}}
+.spinAnim{animation:spin 0.1s linear infinite}
+@keyframes spin{0%{transform:rotateX(0)}100%{transform:rotateX(360deg)}}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>🎰 Casino</h1>
+<div class="balance">Saldo: <span id="balance">10</span> MP</div>
+<div>
+Stawka: <input type="number" id="stake" value="1" min="1" style="width:60px">
+<button id="reset">Reset</button>
+</div>
+
+<div class="game" id="slotGame">
+<h2>🎰 Mini-Sloty</h2>
+<div class="slot"><span id="s1">🍒</span><span id="s2">🍋</span><span id="s3">🔔</span></div>
+<button id="playSlots">Zakręć</button>
+<p id="slotsResult"></p>
+</div>
+
+<div class="game" id="colorGame">
+<h2>♠️ Czarne / Czerwone / Zielone</h2>
+<select id="colorChoice">
+<option value="red">Czerwone</option>
+<option value="black">Czarne</option>
+<option value="green">Zielone</option>
+</select>
+<button id="playColor">Losuj kartę</button>
+<p id="colorResult"></p>
+</div>
+
+<div class="game" id="diceGame">
+<h2>🎲 Rzut kostką</h2>
+Wybierz liczbę:
+<select id="diceChoice">
+<option>1</option><option>2</option><option>3</option>
+<option>4</option><option>5</option><option>6</option>
+</select>
+<button id="playDice">Rzuć kostką</button>
+<p id="diceResult"></p>
+</div>
+
+<h3>📜 Historia</h3>
+<div class="history" id="history"></div>
+</div>
+
+<script>
+const START_BALANCE=10;
+let balance=START_BALANCE;
+const balanceEl=document.getElementById("balance");
+const stakeEl=document.getElementById("stake");
+const historyEl=document.getElementById("history");
+function updateBalance(){balanceEl.textContent=balance;localStorage.setItem("fakeBalance",balance)}
+function addHistory(text){const div=document.createElement("div");div.textContent=text;historyEl.prepend(div);let hist=JSON.parse(localStorage.getItem("fakeHistory")||"[]");hist.unshift(text);hist=hist.slice(0,50);localStorage.setItem("fakeHistory",JSON.stringify(hist))}
+function loadState(){const b=parseInt(localStorage.getItem("fakeBalance"));if(!isNaN(b))balance=b;const hist=JSON.parse(localStorage.getItem("fakeHistory")||"[]");hist.reverse().forEach(t=>{const d=document.createElement("div");d.textContent=t;historyEl.appendChild(d)})}
+function flash(el,win){el.classList.remove("winAnim","loseAnim");void el.offsetWidth;el.classList.add(win?"winAnim":"loseAnim")}
+
+document.getElementById("reset").onclick=function(){if(confirm("Reset gry?")){balance=START_BALANCE;updateBalance();historyEl.innerHTML="";localStorage.removeItem("fakeHistory")}};
+document.getElementById("playSlots").onclick=async function(){
+  let stake=parseInt(stakeEl.value)||1;if(stake<1||stake>balance)return;
+  const symbols=["🍒","🍋","🔔","⭐","🍀","🍇"];
+  const s1=document.getElementById("s1"),s2=document.getElementById("s2"),s3=document.getElementById("s3");
+  [s1,s2,s3].forEach(s=>s.classList.add("spinAnim"));
+  for(let i=0;i<10;i++){
+    s1.textContent=symbols[Math.floor(Math.random()*symbols.length)];
+    s2.textContent=symbols[Math.floor(Math.random()*symbols.length)];
+    s3.textContent=symbols[Math.floor(Math.random()*symbols.length)];
+    await new Promise(r=>setTimeout(r,100));
+  }
+  [s1,s2,s3].forEach(s=>s.classList.remove("spinAnim"));
+  const r1=s1.textContent,r2=s2.textContent,r3=s3.textContent;
+  let win=0;
+  if(r1===r2&&r2===r3)win=stake*5;
+  else if(r1===r2||r2===r3||r1===r3)win=stake*2;
+  else win=-stake;
+  balance+=win;
+  updateBalance();
+  const res=win>0?`Wygrana ${win} MP`:`Przegrana ${-win} MP`;
+  document.getElementById("slotsResult").textContent=res;
+  addHistory(`Mini-Sloty: ${res}`);
+  flash(document.getElementById("slotGame"),win>0);
+};
+
+document.getElementById("playColor").onclick=function(){
+  let stake=parseInt(stakeEl.value)||1;if(stake<1||stake>balance)return;
+  const choice=document.getElementById("colorChoice").value;
+  const rnd=Math.random();
+  let result="";
+  if(rnd<0.45)result="red";
+  else if(rnd<0.9)result="black";
+  else result="green";
+  let multiplier= result==="green"?5:2;
+  let win=result===choice?stake*multiplier:-stake;
+  balance+=win;
+  updateBalance();
+  const colorName=result==="red"?"czerwoną ♥":result==="black"?"czarną ♠":"zieloną ♣";
+  const res=win>0?`Wygrana ${win} MP`:`Przegrana ${-win} MP`;
+  document.getElementById("colorResult").textContent=`Wylosowano ${colorName} – ${res}`;
+  addHistory(`Kolory: ${res}`);
+  flash(document.getElementById("colorGame"),win>0);
+};
+
+document.getElementById("playDice").onclick=function(){
+  let stake=parseInt(stakeEl.value)||1;if(stake<1||stake>balance)return;
+  const choice=parseInt(document.getElementById("diceChoice").value);
+  const roll=Math.floor(Math.random()*6)+1;
+  let win=roll===choice?stake*6:-stake;
+  balance+=win;
+  updateBalance();
+  const res=win>0?`Wygrana ${win} MP`:`Przegrana ${-win} MP`;
+  document.getElementById("diceResult").textContent=`Wyrzucono ${roll} – ${res}`;
+  addHistory(`Rzut kostką: ${res}`);
+  flash(document.getElementById("diceGame"),win>0);
+};
+
+loadState();
+updateBalance();
+</script>
+</body>
+</html>
