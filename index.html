@@ -1,143 +1,405 @@
 <!doctype html>
 <html lang="pl">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Fejkowe Kasyno</title>
 <style>
-body{font-family:sans-serif;background:#111;color:#fff;margin:0;padding:0;display:flex;justify-content:center}
-.container{max-width:900px;width:100%;padding:20px}
-h1{text-align:center}
-.balance{background:#222;padding:10px;border-radius:8px;margin-bottom:10px;text-align:center;font-size:18px}
-input,select,button{padding:8px;border:none;border-radius:5px;font-size:16px}
-button{cursor:pointer;background:#4caf50;color:white;transition:transform .1s ease}
-button:hover{transform:scale(1.05)}
-button:disabled{background:#555;cursor:not-allowed}
-.game{background:#1b1b1b;padding:15px;margin-bottom:15px;border-radius:8px;transition:background .3s}
-.history{background:#222;padding:10px;border-radius:8px;max-height:200px;overflow:auto}
-.history div{border-bottom:1px solid #333;padding:5px 0}
-.slot{display:flex;justify-content:center;font-size:40px;margin:10px 0;gap:15px}
-.winAnim{animation:winFlash 0.6s ease}
-.loseAnim{animation:loseFlash 0.6s ease}
-@keyframes winFlash{0%{background:#1b1b1b}50%{background:#064;}100%{background:#1b1b1b}}
-@keyframes loseFlash{0%{background:#1b1b1b}50%{background:#600;}100%{background:#1b1b1b}}
-.spinAnim{animation:spin 0.1s linear infinite}
-@keyframes spin{0%{transform:rotateX(0)}100%{transform:rotateX(360deg)}}
+  :root{--bg:#111;--panel:#1b1b1b;--muted:#222;--accent:#4caf50}
+  body{
+    font-family: Inter, system-ui, sans-serif;
+    background: var(--bg);
+    color:#fff;
+    margin:0;
+    padding:20px;
+    display:flex;
+    justify-content:center;
+  }
+  .container{
+    width:100%;
+    max-width:980px;
+  }
+  h1{text-align:center;color:#ffdc00;text-shadow:0 0 8px #ffdc00;margin:0 0 12px}
+  .top{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .balance{background:var(--muted);padding:10px;border-radius:8px;font-size:18px}
+  input,select,button{padding:8px;border-radius:6px;border:none;font-size:15px}
+  button{background:var(--accent);color:#fff;cursor:pointer}
+  button:disabled{background:#555;cursor:not-allowed}
+  .games{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .game{background:var(--panel);padding:12px;border-radius:10px}
+  .slot,.bigSlot{display:flex;justify-content:center;gap:14px;font-size:44px;margin:10px 0}
+  .bigSlot{font-size:32px;gap:8px}
+  .history{background:var(--muted);padding:10px;border-radius:8px;max-height:220px;overflow:auto;margin-top:12px}
+  .history div{border-bottom:1px solid #333;padding:6px 0}
+  .cards{display:flex;justify-content:center;align-items:center;gap:20px;font-size:48px;margin:10px 0}
+  .winAnim{animation:winFlash .6s ease}
+  .loseAnim{animation:loseFlash .6s ease}
+  @keyframes winFlash{0%{background:var(--panel)}50%{background:#063}100%{background:var(--panel)}}
+  @keyframes loseFlash{0%{background:var(--panel)}50%{background:#600}100%{background:var(--panel)}}
+  canvas.confetti{position:fixed;left:0;top:0;pointer-events:none;z-index:9999}
+  .small{font-size:13px;color:#ccc}
+  .center{display:flex;justify-content:center}
 </style>
 </head>
 <body>
 <div class="container">
-<h1>🎰 Casino</h1>
-<div class="balance">Saldo: <span id="balance">10</span> MP</div>
-<div>
-Stawka: <input type="number" id="stake" value="1" min="1" style="width:60px">
-<button id="reset">Reset</button>
+  <h1>🎰 ⅥCasino</h1>
+  <h1>NOWE GRY W KRÓTCĘ</h1>
+
+  <div class="top">
+    <div class="balance">Saldo: <strong id="balance">10</strong> PLN/zł</div>
+    <div>
+      Stawka: <input id="stake" type="number" min="1" value="1" style="width:80px">
+      <button id="reset">Reset</button>
+    </div>
+  </div>
+
+  <div class="games">
+    <!-- Mini Sloty -->
+    <div class="game" id="slotGame">
+      <h2>🎰 Mini-Sloty</h2>
+      <div class="slot">
+        <span id="s1">🍒</span>
+        <span id="s2">🍋</span>
+        <span id="s3">🔔</span>
+      </div>
+      <div class="center">
+        <button id="playSlots">Zakręć</button>
+      </div>
+      <p id="slotsResult" class="small"></p>
+    </div>
+
+    <!-- Big Sloty -->
+    <div class="game" id="bigSlotGame">
+      <h2>🎰 Big-Sloty</h2>
+      <div class="bigSlot">
+        <span id="bs1">🍒</span><span id="bs2">🍋</span><span id="bs3">🔔</span>
+        <span id="bs4">⭐</span><span id="bs5">🍀</span><span id="bs6">🍇</span><span id="bs7">7️⃣</span>
+      </div>
+      <div class="center"><button id="playBigSlots">Zakręć</button></div>
+      <p id="bigSlotsResult" class="small"></p>
+    </div>
+
+    <!-- Coin Flip -->
+    <div class="game" id="coinFlipGame">
+      <h2>🪙 Rzut Monetą</h2>
+      <p class="small">Wybierz:</p>
+      <select id="coinChoice"><option value="heads">Orzeł</option><option value="tails">Reszka</option></select>
+      <div class="center" style="margin-top:8px"><button id="playCoinFlip">Rzuć monetą</button></div>
+      <p id="coinFlipResult" class="small"></p>
+    </div>
+
+    <!-- Card War -->
+    <div class="game" id="cardWarGame">
+      <h2>🃏 Wojna Kart <span class="small">!WERSJA BETA!</span></h2>
+      <p class="small">Losuj kartę — wyższa wygrywa.</p>
+      <div class="center"><button id="playCardWar">Losuj kartę</button></div>
+      <div class="cards"><span id="playerCard">❓</span> <span class="small">vs</span> <span id="casinoCard">❓</span></div>
+      <p id="cardWarResult" class="small"></p>
+    </div>
+
+    <!-- Color Game -->
+    <div class="game" id="colorGame">
+      <h2>♠️ Czarne / Czerwone / Zielone</h2>
+      <select id="colorChoice"><option value="red">Czerwone</option><option value="black">Czarne</option><option value="green">Zielone</option></select>
+      <div class="center" style="margin-top:8px"><button id="playColor">Losuj</button></div>
+      <p id="colorResult" class="small"></p>
+    </div>
+
+    <!-- Dice -->
+    <div class="game" id="diceGame">
+      <h2>🎲 Rzut kostką</h2>
+      <p class="small">Wybierz liczbę:</p>
+      <select id="diceChoice"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select>
+      <div class="center" style="margin-top:8px"><button id="playDice">Rzuć kostką</button></div>
+      <p id="diceResult" class="small"></p>
+    </div>
+  </div>
+
+  <h3 style="margin-top:16px">📜 Historia</h3>
+  <div class="history" id="history"></div>
 </div>
 
-<div class="game" id="slotGame">
-<h2>🎰 Mini-Sloty</h2>
-<div class="slot"><span id="s1">🍒</span><span id="s2">🍋</span><span id="s3">🔔</span></div>
-<button id="playSlots">Zakręć</button>
-<p id="slotsResult"></p>
-</div>
+<canvas class="confetti" id="confettiCanvas"></canvas>
 
-<div class="game" id="colorGame">
-<h2>♠️ Czarne / Czerwone / Zielone</h2>
-<select id="colorChoice">
-<option value="red">Czerwone</option>
-<option value="black">Czarne</option>
-<option value="green">Zielone</option>
-</select>
-<button id="playColor">Losuj kartę</button>
-<p id="colorResult"></p>
-</div>
-
-<div class="game" id="diceGame">
-<h2>🎲 Rzut kostką</h2>
-Wybierz liczbę:
-<select id="diceChoice">
-<option>1</option><option>2</option><option>3</option>
-<option>4</option><option>5</option><option>6</option>
-</select>
-<button id="playDice">Rzuć kostką</button>
-<p id="diceResult"></p>
-</div>
-
-<h3>📜 Historia</h3>
-<div class="history" id="history"></div>
-</div>
+<!-- Dźwięki (podmień pliki jeśli potrzeba) -->
+<audio id="winSound" src="win.mp3"></audio>
+<audio id="loseSound" src="lose.mp3"></audio>
+<audio id="spinSound" src="spin.mp3"></audio>
 
 <script>
-const START_BALANCE=10;
-let balance=START_BALANCE;
-const balanceEl=document.getElementById("balance");
-const stakeEl=document.getElementById("stake");
-const historyEl=document.getElementById("history");
-function updateBalance(){balanceEl.textContent=balance;localStorage.setItem("fakeBalance",balance)}
-function addHistory(text){const div=document.createElement("div");div.textContent=text;historyEl.prepend(div);let hist=JSON.parse(localStorage.getItem("fakeHistory")||"[]");hist.unshift(text);hist=hist.slice(0,50);localStorage.setItem("fakeHistory",JSON.stringify(hist))}
-function loadState(){const b=parseInt(localStorage.getItem("fakeBalance"));if(!isNaN(b))balance=b;const hist=JSON.parse(localStorage.getItem("fakeHistory")||"[]");hist.reverse().forEach(t=>{const d=document.createElement("div");d.textContent=t;historyEl.appendChild(d)})}
-function flash(el,win){el.classList.remove("winAnim","loseAnim");void el.offsetWidth;el.classList.add(win?"winAnim":"loseAnim")}
+/* ======================
+   Ustawienia i zmienne
+   ====================== */
+const START_BALANCE = 10;
+const symbols = ["🍒","🍋","🔔","⭐","🍀","🍇","7️⃣"];
+let balance = START_BALANCE;
 
-document.getElementById("reset").onclick=function(){if(confirm("Reset gry?")){balance=START_BALANCE;updateBalance();historyEl.innerHTML="";localStorage.removeItem("fakeHistory")}};
-document.getElementById("playSlots").onclick=async function(){
-  let stake=parseInt(stakeEl.value)||1;if(stake<1||stake>balance)return;
-  const symbols=["🍒","🍋","🔔","⭐","🍀","🍇"];
-  const s1=document.getElementById("s1"),s2=document.getElementById("s2"),s3=document.getElementById("s3");
-  [s1,s2,s3].forEach(s=>s.classList.add("spinAnim"));
-  for(let i=0;i<10;i++){
-    s1.textContent=symbols[Math.floor(Math.random()*symbols.length)];
-    s2.textContent=symbols[Math.floor(Math.random()*symbols.length)];
-    s3.textContent=symbols[Math.floor(Math.random()*symbols.length)];
-    await new Promise(r=>setTimeout(r,100));
+const balanceEl = document.getElementById('balance');
+const stakeEl = document.getElementById('stake');
+const historyEl = document.getElementById('history');
+const winSound = document.getElementById('winSound');
+const loseSound = document.getElementById('loseSound');
+const spinSound = document.getElementById('spinSound');
+const confettiCanvas = document.getElementById('confettiCanvas');
+const confettiCtx = confettiCanvas.getContext('2d');
+let confettiParticles = [];
+
+/* ========== helpery =========== */
+function updateBalance(){ balanceEl.textContent = balance; localStorage.setItem('fakeBalance', balance); }
+function addHistory(text){
+  const d = document.createElement('div'); d.textContent = `${new Date().toLocaleTimeString()} — ${text}`;
+  historyEl.prepend(d);
+  // przechowuj
+  let hist = JSON.parse(localStorage.getItem('fakeHistory') || '[]');
+  hist.unshift(d.textContent); hist = hist.slice(0,200);
+  localStorage.setItem('fakeHistory', JSON.stringify(hist));
+}
+function flash(el, win){ el.classList.remove('winAnim','loseAnim'); void el.offsetWidth; el.classList.add(win? 'winAnim':'loseAnim'); }
+function playSound(s){ try{ s.currentTime = 0; s.play(); }catch(e){} }
+
+/* ========== confetti ========== */
+function startConfetti(){
+  confettiParticles = Array.from({length:100},() => ({
+    x: Math.random()*confettiCanvas.width,
+    y: Math.random()*confettiCanvas.height,
+    r: Math.random()*6+2,
+    dx: Math.random()*4-2,
+    dy: Math.random()*3+1,
+    color: `hsl(${Math.random()*360},100%,50%)`
+  }));
+  requestAnimationFrame(updateConfetti);
+}
+function updateConfetti(){
+  confettiCtx.clearRect(0,0,confettiCanvas.width, confettiCanvas.height);
+  for(const p of confettiParticles){
+    p.x += p.dx; p.y += p.dy;
+    if(p.y > confettiCanvas.height) p.y = -10;
+    confettiCtx.beginPath(); confettiCtx.arc(p.x,p.y,p.r,0,Math.PI*2); confettiCtx.fillStyle=p.color; confettiCtx.fill();
   }
-  [s1,s2,s3].forEach(s=>s.classList.remove("spinAnim"));
-  const r1=s1.textContent,r2=s2.textContent,r3=s3.textContent;
-  let win=0;
-  if(r1===r2&&r2===r3)win=stake*5;
-  else if(r1===r2||r2===r3||r1===r3)win=stake*2;
-  else win=-stake;
-  balance+=win;
-  updateBalance();
-  const res=win>0?`Wygrana ${win} MP`:`Przegrana ${-win} MP`;
-  document.getElementById("slotsResult").textContent=res;
-  addHistory(`Mini-Sloty: ${res}`);
-  flash(document.getElementById("slotGame"),win>0);
-};
+  requestAnimationFrame(updateConfetti);
+}
+window.addEventListener('resize', ()=>{ confettiCanvas.width = innerWidth; confettiCanvas.height = innerHeight; });
+confettiCanvas.width = innerWidth; confettiCanvas.height = innerHeight;
 
-document.getElementById("playColor").onclick=function(){
-  let stake=parseInt(stakeEl.value)||1;if(stake<1||stake>balance)return;
-  const choice=document.getElementById("colorChoice").value;
-  const rnd=Math.random();
-  let result="";
-  if(rnd<0.45)result="red";
-  else if(rnd<0.9)result="black";
-  else result="green";
-  let multiplier= result==="green"?5:2;
-  let win=result===choice?stake*multiplier:-stake;
-  balance+=win;
-  updateBalance();
-  const colorName=result==="red"?"czerwoną ♥":result==="black"?"czarną ♠":"zieloną ♣";
-  const res=win>0?`Wygrana ${win} MP`:`Przegrana ${-win} MP`;
-  document.getElementById("colorResult").textContent=`Wylosowano ${colorName} – ${res}`;
-  addHistory(`Kolory: ${res}`);
-  flash(document.getElementById("colorGame"),win>0);
-};
-
-document.getElementById("playDice").onclick=function(){
-  let stake=parseInt(stakeEl.value)||1;if(stake<1||stake>balance)return;
-  const choice=parseInt(document.getElementById("diceChoice").value);
-  const roll=Math.floor(Math.random()*6)+1;
-  let win=roll===choice?stake*6:-stake;
-  balance+=win;
-  updateBalance();
-  const res=win>0?`Wygrana ${win} MP`:`Przegrana ${-win} MP`;
-  document.getElementById("diceResult").textContent=`Wyrzucono ${roll} – ${res}`;
-  addHistory(`Rzut kostką: ${res}`);
-  flash(document.getElementById("diceGame"),win>0);
-};
-
+/* ========== stan z localStorage ========== */
+function loadState(){
+  const b = parseInt(localStorage.getItem('fakeBalance'));
+  if(!isNaN(b)) balance = b;
+  const hist = JSON.parse(localStorage.getItem('fakeHistory') || '[]');
+  hist.reverse().forEach(t => { const d=document.createElement('div'); d.textContent = t; historyEl.appendChild(d); });
+}
 loadState();
 updateBalance();
+
+/* ========== animacja bębnów (wspólna) ========== */
+/* reelIds - tablica id elementów, finalSymbols - tablica symboli do ustawienia na końcu,
+   baseDuration - ms długość pierwszego bębna, jitter - dodatkowe ms dla następnych (staggered) */
+function spinReels(reelIds, finalSymbols, baseDuration=1100, jitter=300, onDone=null){
+  playSound(spinSound);
+  // dla każdego bębna osobny interval i czas stopu (stagger)
+  reelIds.forEach((id, idx) => {
+    const el = document.getElementById(id);
+    const stopAfter = baseDuration + Math.floor(Math.random()*jitter) + idx*150;
+    const iv = setInterval(()=> {
+      el.textContent = symbols[Math.floor(Math.random()*symbols.length)];
+      // małe obroty 3D (opcjonalne) - dodaj/remove klasy jeśli chcesz
+    }, 80 + Math.floor(Math.random()*40));
+    setTimeout(()=> {
+      clearInterval(iv);
+      el.textContent = finalSymbols[idx];
+      // jeżeli to ostatni bęben — wywołaj onDone
+      if(idx === reelIds.length - 1 && typeof onDone === 'function'){ setTimeout(onDone, 80); }
+    }, stopAfter);
+  });
+}
+
+/* ======================
+   Mini-Sloty
+   ====================== */
+// losowanie symboli
+function weightedRandomSymbol() {
+    const bonusChance = 0.0169; // 1,69%
+    if (Math.random() < bonusChance) {
+        // losujemy symbol tak, by zwiększyć szansę na dopasowanie
+        return "🍒"; // symbol „preferowany” do większej wygranej
+    }
+    return symbols[Math.floor(Math.random() * symbols.length)];
+}
+
+// potem w grze:
+const s1 = weightedRandomSymbol();
+const s2 = weightedRandomSymbol();
+const s3 = weightedRandomSymbol();
+
+  spinReels(['s1','s2','s3'], final, 900, 600, () => {
+    // sprawdź wygraną
+    let resText = '❌ Przegrana!';
+    let win = false;
+    if(final[0] === final[1] && final[1] === final[2]){ balance += stake * 5; resText = `🎉 Jackpot! +${stake*5}`; win=true; }
+    else if(new Set(final).size === 2){ balance += stake * 2; resText = `✨ Wygrana +${stake*2}`; win=true; }
+    document.getElementById('slotsResult').textContent = resText;
+    flash(document.getElementById('slotGame'), win);
+    playSound(win?winSound:loseSound);
+    if(win) startConfetti();
+    updateBalance();
+    addHistory('Mini-Sloty: ' + resText);
+  });
+};
+
+/* ======================
+   Big-Sloty
+   ====================== */
+document.getElementById('playBigSlots').onclick = function(){
+  const stake = parseInt(stakeEl.value);
+  if(isNaN(stake) || stake <= 0) return alert('Podaj poprawną stawkę.');
+  if(stake > balance) return alert('Za mało środków!');
+  balance -= stake; updateBalance();
+  // losuj final dla 7 bębnów
+  const final = Array.from({length:7}, ()=> symbols[Math.floor(Math.random()*symbols.length)]);
+  const ids = ['bs1','bs2','bs3','bs4','bs5','bs6','bs7'];
+  spinReels(ids, final, 1100, 900, () => {
+    let resText = '❌ Przegrana!';
+    let win = false;
+    if(final.every(s => s === final[0])){ balance += stake * 20; resText = `💎 MEGA Jackpot! +${stake*20}`; win=true; }
+    else if(new Set(final).size <= 3){ balance += stake * 5; resText = `✨ Duża wygrana +${stake*5}`; win=true; }
+    document.getElementById('bigSlotsResult').textContent = resText;
+    flash(document.getElementById('bigSlotGame'), win);
+    playSound(win?winSound:loseSound);
+    if(win) startConfetti();
+    updateBalance();
+    addHistory('Big-Sloty: ' + resText);
+  });
+};
+
+/* ======================
+   Rzut Monetą
+   ====================== */
+document.getElementById('playCoinFlip').onclick = function(){
+  const stake = parseInt(stakeEl.value);
+  if(isNaN(stake) || stake <= 0) return alert('Podaj poprawną stawkę.');
+  if(stake > balance) return alert('Za mało środków!');
+  balance -= stake; updateBalance();
+  playSound(spinSound);
+  setTimeout(() => {
+    const choice = document.getElementById('coinChoice').value;
+    const flip = Math.random() < 0.5 ? 'heads' : 'tails';
+    let text, win=false;
+    if(choice === flip){ balance += stake * 2; text = `🎉 Wypadło ${flip === 'heads' ? 'Orzeł' : 'Reszka'} — Wygrana +${stake*2}`; win=true; }
+    else { text = `❌ Wypadło ${flip === 'heads' ? 'Orzeł' : 'Reszka'} — Przegrana`; }
+    document.getElementById('coinFlipResult').textContent = text;
+    flash(document.getElementById('coinFlipGame'), win);
+    playSound(win?winSound:loseSound);
+    if(win) startConfetti();
+    updateBalance(); addHistory('Moneta: ' + text);
+  }, 450);
+};
+
+/* ======================
+   Wojna Kart (BETA)
+   ====================== */
+const suits = ['♠','♥','♦','♣'];
+const values = [2,3,4,5,6,7,8,9,10,'J','Q','K','A'];
+function drawCard(){ return { suit: suits[Math.floor(Math.random()*suits.length)], value: values[Math.floor(Math.random()*values.length)] }; }
+function cardRank(v){ return values.indexOf(v); }
+
+document.getElementById('playCardWar').onclick = function(){
+  const stake = parseInt(stakeEl.value);
+  if(isNaN(stake) || stake <= 0) return alert('Podaj poprawną stawkę.');
+  if(stake > balance) return alert('Za mało środków!');
+  balance -= stake; updateBalance();
+  const p = drawCard(), c = drawCard();
+  document.getElementById('playerCard').textContent = `${p.value}${p.suit}`;
+  document.getElementById('casinoCard').textContent = `${c.value}${c.suit}`;
+  // animacja małego napięcia
+  setTimeout(()=> {
+    let text = '❌ Przegrana'; let win=false;
+    if(cardRank(p.value) > cardRank(c.value)){ balance += stake * 2; text = `🎉 Wygrana +${stake*2}`; win=true; }
+    else if(cardRank(p.value) === cardRank(c.value)){ balance += stake; text = '🤝 Remis (stawka zwrócona)'; }
+    document.getElementById('cardWarResult').textContent = text;
+    flash(document.getElementById('cardWarGame'), win);
+    playSound(win?winSound:loseSound);
+    if(win) startConfetti();
+    updateBalance(); addHistory('Wojna kart: ' + text);
+  }, 500);
+};
+
+/* ======================
+   Kolory (Czarne / Czerwone / Zielone)
+   ====================== */
+document.getElementById('playColor').onclick = function(){
+  const stake = parseInt(stakeEl.value);
+  if(isNaN(stake) || stake <= 0) return alert('Podaj poprawną stawkę.');
+  if(stake > balance) return alert('Za mało środków!');
+  balance -= stake; updateBalance();
+  playSound(spinSound);
+  setTimeout(()=> {
+    // losowanie: 45% red, 45% black, 10% green (rzadkie)
+    const r = Math.random();
+    let color, symbol;
+    if(r < 0.45){ color = 'red'; symbol = '♥️/♦️'; }
+    else if(r < 0.9){ color = 'black'; symbol = '♠️/♣️'; }
+    else { color = 'green'; symbol = '🃏'; }
+    const choice = document.getElementById('colorChoice').value;
+    let text = '❌ Przegrana'; let win=false;
+    if(choice === color){
+      if(color === 'green'){ balance += stake * 15; text = `💚 Zielone! Wygrana +${stake*15}`; }
+      else { balance += stake * 2; text = `🎉 Wygrana +${stake*2}`; }
+      win = true;
+    } else {
+      text = `❌ Wypadło ${symbol} — Przegrana`;
+    }
+    document.getElementById('colorResult').textContent = text;
+    flash(document.getElementById('colorGame'), win);
+    playSound(win?winSound:loseSound);
+    if(win) startConfetti();
+    updateBalance(); addHistory('Kolory: ' + text);
+  }, 600);
+};
+
+/* ======================
+   Kostka
+   ====================== */
+document.getElementById('playDice').onclick = function(){
+  const stake = parseInt(stakeEl.value);
+  if(isNaN(stake) || stake <= 0) return alert('Podaj poprawną stawkę.');
+  if(stake > balance) return alert('Za mało środków!');
+  balance -= stake; updateBalance();
+  playSound(spinSound);
+  setTimeout(()=> {
+    const choice = parseInt(document.getElementById('diceChoice').value);
+    const roll = Math.floor(Math.random()*6)+1;
+    let text = `🎲 Wypadło ${roll}. ❌ Przegrana`;
+    let win=false;
+    if(roll === choice){ balance += stake * 6; text = `🎉 Trafiłeś ${roll}! Wygrana +${stake*6}`; win=true; }
+    document.getElementById('diceResult').textContent = text;
+    flash(document.getElementById('diceGame'), win);
+    playSound(win?winSound:loseSound);
+    if(win) startConfetti();
+    updateBalance(); addHistory('Kostka: ' + text);
+  }, 600);
+};
+
+/* ========== reset i inicjalizacja ========== */
+document.getElementById('reset').onclick = function(){
+  balance = START_BALANCE; updateBalance();
+  localStorage.removeItem('fakeBalance'); localStorage.removeItem('fakeHistory');
+  historyEl.innerHTML = '';
+  // przywróć domyślne symbole (opcjonalnie)
+  ['s1','s2','s3'].forEach((id,i)=> document.getElementById(id).textContent = symbols[i]);
+  ['bs1','bs2','bs3','bs4','bs5','bs6','bs7'].forEach((id,i)=> document.getElementById(id).textContent = symbols[i % symbols.length]);
+};
+updateBalance();
+
+/* zabezpieczenie: blokuj przyciski podczas spinów (opcjonalne) */
+let locked = false;
+function setLocked(v){
+  locked = v;
+  const btns = document.querySelectorAll('button');
+  btns.forEach(b => b.disabled = v && !b.id === 'reset' ? v : b.disabled);
+}
+
+/* koniec skryptu */
 </script>
 </body>
 </html>
